@@ -1,75 +1,125 @@
 @startuml D5700-Computer-Emulator
-
-classDiagram
-direction LR
-
+left to right direction
+skinparam classAttributeIconSize 0
 
 class D5700 {
-    -cpu: D5700CPU
-    -ram: D5700Memory
-    -rom: D5700Memory
-    -keyboard: D5700Keyboard
-    -screen: D5700Display
-    -timer: D5700Timer
-    +loadRom(path: String) void
-    +run() void
+  -cpu: D5700CPU
+  -ram: D5700Ram
+  -rom: D5700Rom
+  -keyboard: D5700Keyboard
+  -display: D5700Display
+  -timer: D5700Timer
+  +loadRom(bytes: UByteArray): Unit
+  +reset(): Unit
+  +run(): Unit
 }
 
-class D5700Memory {
-    -storage: byte[4096]
-    +read(address: Number): byte
-    +write(address: Number, value: byte) void
+interface D5700AddressableMemory {
+  +read(address: UShort): UByte
+  +write(address: UShort, value: UByte): Unit
+}
+
+class D5700Ram {
+  -storage: UByteArray
+  +read(address: UShort): UByte
+  +write(address: UShort, value: UByte): Unit
+}
+
+class D5700Rom {
+  -storage: UByteArray
+  +load(bytes: UByteArray): Unit
+  +read(address: UShort): UByte
+  +write(address: UShort, value: UByte): Unit
 }
 
 class D5700Keyboard {
-    -keyPressed: boolean
-    -keyValue: byte
-    +isKeyPressed(): boolean
-    +getKeyValue(): byte
-    +setKeyPressed(pressed: boolean) void
-    +setKeyValue(value: byte) void
+  +readHexByte(): UByte
+  +isInputAvailable(): Boolean
 }
 
 class D5700Display {
-    -display: byte[8][8]
-    +draw(x: Number, y: Number, value: byte) void
-    +clear() void
-    +getDisplay(): byte[8][8]
+  -frameBuffer: UByteArray
+  +draw(row: UByte, column: UByte, value: UByte): Unit
+  +clear(): Unit
+  +getFrameBuffer(): UByteArray
 }
 
 class D5700Timer {
-    -time: byte
-    +setTime(time: byte) void
-    +getTime(): byte
-    +decrementTime() void
+  -value: UByte
+  +getValue(): UByte
+  +setValue(value: UByte): Unit
+  +tick60Hz(): Unit
 }
 
 class D5700CPU {
-    -programCounter: Number
-    -timerRegister: Number
-    -addressRegister: Number
-    -memoryRegister: boolean
-    -registers: byte[8]
-    +start() void
-    +executeNextInstruction() void
-    +stop() void
-    
-    -add(registerX: Number, registerY: Number, registerZ: Number)
-    -convertByteToAscii(registerX: Number, registerY: Number)
-    -convertToBase10(register: Number)
-    -draw(registerX: Number, registerY: Number, registerZ: Number)
-    -jump(address: Number)
-    -read(destinationRegister: Number)
-    -readKeyboard(register: Number, address: Number)
-    -readT(register: Number)
-    -setA(address: Number)
-    -setT(time: byte)
-    -skipEqual(registerX: Number, registerY: Number)
-    -skipNotEqual(registerX: Number, registerY: Number)
-    -store(register: Number, value: byte)
-    -subtract(registerX: Number, registerY: Number, registerZ: Number)
-    -switchMemory()
-    -write(sourceRegister: Number, address: Number)
+  -programCounter: UShort
+  -addressRegister: UShort
+  -timerRegister: UByte
+  -memorySelect: Boolean
+  -registers: UByteArray
+  -memory: D5700AddressableMemory
+  -rom: D5700Rom
+  -ram: D5700Ram
+  -keyboard: D5700Keyboard
+  -display: D5700Display
+  -timer: D5700Timer
+  +start(): Unit
+  +stop(): Unit
+  +step(): Unit
+  -fetchInstruction(): UShort
+  -decodeOpcode(instruction: UShort): D5700Opcode
+  -execute(instruction: UShort): Unit
+  -store(rX: Int, value: UByte): Unit
+  -add(rX: Int, rY: Int, rZ: Int): Unit
+  -subtract(rX: Int, rY: Int, rZ: Int): Unit
+  -read(rX: Int): Unit
+  -write(rX: Int): Unit
+  -jump(address: UShort): Unit
+  -readKeyboard(rX: Int): Unit
+  -switchMemory(): Unit
+  -skipEqual(rX: Int, rY: Int): Unit
+  -skipNotEqual(rX: Int, rY: Int): Unit
+  -setA(address: UShort): Unit
+  -setT(value: UByte): Unit
+  -readT(rX: Int): Unit
+  -convertToBase10(rX: Int): Unit
+  -convertByteToAscii(rX: Int, rY: Int): Unit
+  -draw(rX: Int, rY: Int, rZ: Int): Unit
 }
 
+enum D5700Opcode {
+  STORE
+  ADD
+  SUBTRACT
+  READ
+  WRITE
+  JUMP
+  READ_KEYBOARD
+  SWITCH_MEMORY
+  SKIP_EQUAL
+  SKIP_NOT_EQUAL
+  SET_A
+  SET_T
+  READ_T
+  CONVERT_TO_BASE_10
+  CONVERT_BYTE_TO_ASCII
+  DRAW
+}
+
+D5700 o-- D5700CPU
+D5700 o-- D5700Ram
+D5700 o-- D5700Rom
+D5700 o-- D5700Keyboard
+D5700 o-- D5700Display
+D5700 o-- D5700Timer
+
+D5700CPU --> D5700AddressableMemory : uses
+D5700CPU --> D5700Rom : fetches instructions from
+D5700CPU --> D5700Ram : reads/writes RAM
+D5700CPU --> D5700Keyboard : reads input
+D5700CPU --> D5700Display : draws output
+D5700CPU --> D5700Timer : updates timer
+
+D5700AddressableMemory <|.. D5700Ram
+D5700AddressableMemory <|.. D5700Rom
 @enduml
