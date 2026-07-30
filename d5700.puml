@@ -32,6 +32,10 @@ class D5700Emulator {
   +run(): Unit
 }
 
+class D5700EmulatorFactory {
+  +create(keyboardInput: KeyboardInput, timerScheduler: TimerSchedulerStrategy, romWritable: Boolean, display: D5700Display): D5700Emulator
+}
+
 object D5700App {
   +run(): Unit
 }
@@ -149,11 +153,15 @@ class RomWriteException
 
 D5700App --> D5700RomLoader : loads program
 D5700App --> D5700Emulator : starts
+D5700EmulatorFactory ..> D5700Emulator : creates
 
 D5700Emulator o-- D5700CPU
 D5700Emulator o-- D5700Rom
 D5700Emulator o-- D5700Display
 D5700Emulator o-- D5700Timer
+D5700EmulatorFactory ..> KeyboardInput : accepts
+D5700EmulatorFactory ..> TimerSchedulerStrategy : accepts
+D5700EmulatorFactory ..> D5700Display : accepts
 
 CpuCycleTemplate <|-- D5700CPU
 

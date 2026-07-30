@@ -306,6 +306,18 @@ class D5700CpuTest {
     }
 
     @Test
+    fun emulator_factory_accepts_external_display_dependency() {
+        val renderer = RecordingDisplayRenderer()
+        val display = D5700Display(renderer)
+        val emulator = D5700Emulator.create(display = display)
+
+        emulator.loadRom(ubyteArrayOf(0x00u, 0x00u))
+        emulator.run()
+
+        assertEquals(0, display.snapshot().count { it != 0u.toUByte() })
+    }
+
+    @Test
     fun draw_throws_for_non_ascii_byte() {
         val f = cpuFixture()
         loadProgram(f.rom, 0x00FF, 0x0100, 0x0200, 0xF012)
