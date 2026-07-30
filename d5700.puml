@@ -2,24 +2,6 @@
 left to right direction
 skinparam classAttributeIconSize 0
 
-class D5700Emulator {
-  -cpu: D5700CPU
-  -rom: D5700Rom
-  -display: D5700Display
-  -timer: D5700Timer
-  +loadRom(bytes: UByteArray): Unit
-  +reset(): Unit
-  +run(): Unit
-}
-
-class D5700App {
-  +run(): Unit
-}
-
-class D5700RomLoader {
-  +loadFromPath(path: String): UByteArray
-}
-
 abstract class CpuCycleTemplate {
   +step(): Unit
   #beforeStep(): Unit
@@ -40,15 +22,33 @@ class D5700CPU {
   #afterStep(): Unit
 }
 
+class D5700Emulator {
+  -cpu: D5700CPU
+  -rom: D5700Rom
+  -display: D5700Display
+  -timer: D5700Timer
+  +loadRom(bytes: UByteArray): Unit
+  +reset(): Unit
+  +run(): Unit
+}
+
+object D5700App {
+  +run(): Unit
+}
+
+object D5700RomLoader {
+  +loadFromPath(path: String): UByteArray
+}
+
 interface InstructionFactory {
   +get(opcode: Int): InstructionStrategy?
 }
 
-interface InstructionStrategy {
+fun interface InstructionStrategy {
   +execute(cpu: D5700CPU, instruction: Int): Unit
 }
 
-class DefaultInstructionFactory {
+object DefaultInstructionFactory {
   -instructionMap: Map<Int, InstructionStrategy>
   +get(opcode: Int): InstructionStrategy?
 }
@@ -81,6 +81,7 @@ interface KeyboardInput {
 
 class ConsoleKeyboardInput {
   +readHexByte(): UByte
+  -parseHexInput(raw: String): UByte
 }
 
 class StubKeyboardInput {
@@ -89,6 +90,7 @@ class StubKeyboardInput {
 
 class D5700Display {
   -frameBuffer: UByteArray
+  -dirty: Boolean
   +draw(row: Int, column: Int, value: UByte): Unit
   +clear(): Unit
   +snapshot(): UByteArray
@@ -140,6 +142,7 @@ D5700CPU --> D5700Timer : reads/sets timer
 D5700CPU --> InstructionFactory : decodes/dispatches
 
 InstructionFactory <|.. DefaultInstructionFactory
+InstructionStrategy <.. DefaultInstructionFactory : uses
 
 D5700AddressableMemory <|.. D5700Ram
 D5700AddressableMemory <|.. D5700Rom
