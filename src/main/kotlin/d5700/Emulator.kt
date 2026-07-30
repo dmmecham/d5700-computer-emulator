@@ -43,12 +43,13 @@ class D5700Emulator private constructor(
             keyboardInput: KeyboardInput = ConsoleKeyboardInput(),
             timerScheduler: TimerSchedulerStrategy = RealTimeTimerSchedulerStrategy(),
             romWritable: Boolean = false,
-            display: D5700Display = D5700Display()
+            display: D5700Display = D5700Display(),
+            instructionFactory: InstructionFactory = DefaultInstructionFactory
         ): D5700Emulator {
             val rom = D5700Rom(4096, romWritable)
             val ram = D5700Ram(4096)
             val timer = D5700Timer(timerScheduler)
-            val cpu = D5700CPU(rom, ram, keyboardInput, display, timer)
+            val cpu = D5700CPU(rom, ram, keyboardInput, display, timer, instructionFactory)
             return D5700Emulator(cpu, rom, display, timer)
         }
     }

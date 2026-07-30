@@ -306,6 +306,23 @@ class D5700CpuTest {
     }
 
     @Test
+    fun emulator_factory_accepts_external_instruction_factory_dependency() {
+        val instructionFactory = object : InstructionFactory {
+            override fun get(opcode: Int): InstructionStrategy? =
+                if (opcode == 0x1) {
+                    InstructionStrategy { _, _ -> throw IllegalStateException("custom instruction factory used") }
+                } else {
+                    null
+                }
+        }
+
+        val emulator = D5700Emulator.create(instructionFactory = instructionFactory)
+        emulator.loadRom(ubyteArrayOf(0x10u, 0x00u))
+
+        assertFailsWith<IllegalStateException> { emulator.run() }
+    }
+
+    @Test
     fun emulator_factory_accepts_external_display_dependency() {
         val renderer = RecordingDisplayRenderer()
         val display = D5700Display(renderer)

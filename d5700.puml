@@ -30,11 +30,12 @@ class D5700Emulator {
   +loadRom(bytes: UByteArray): Unit
   +reset(): Unit
   +run(): Unit
+  +create(keyboardInput: KeyboardInput, timerScheduler: TimerSchedulerStrategy, romWritable: Boolean, display: D5700Display, instructionFactory: InstructionFactory): D5700Emulator
 }
 
-class D5700EmulatorFactory {
-  +create(keyboardInput: KeyboardInput, timerScheduler: TimerSchedulerStrategy, romWritable: Boolean, display: D5700Display): D5700Emulator
-}
+note right of D5700Emulator
+  companion object Factory
+end note
 
 object D5700App {
   +run(): Unit
@@ -153,15 +154,16 @@ class RomWriteException
 
 D5700App --> D5700RomLoader : loads program
 D5700App --> D5700Emulator : starts
-D5700EmulatorFactory ..> D5700Emulator : creates
+D5700App ..> D5700Emulator : create(...)
 
 D5700Emulator o-- D5700CPU
 D5700Emulator o-- D5700Rom
 D5700Emulator o-- D5700Display
 D5700Emulator o-- D5700Timer
-D5700EmulatorFactory ..> KeyboardInput : accepts
-D5700EmulatorFactory ..> TimerSchedulerStrategy : accepts
-D5700EmulatorFactory ..> D5700Display : accepts
+D5700Emulator ..> KeyboardInput : accepts
+D5700Emulator ..> TimerSchedulerStrategy : accepts
+D5700Emulator ..> D5700Display : accepts
+D5700Emulator ..> InstructionFactory : accepts
 
 CpuCycleTemplate <|-- D5700CPU
 
