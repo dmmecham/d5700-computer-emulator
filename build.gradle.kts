@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.4.0"
+    application
 }
 
 group = "org.example"
@@ -14,7 +15,17 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(26)
+    jvmToolchain(25)
+}
+
+application {
+    mainClass.set("MainKt")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    compilerOptions {
+        freeCompilerArgs.add("-opt-in=kotlin.ExperimentalUnsignedTypes")
+    }
 }
 
 tasks.test {
