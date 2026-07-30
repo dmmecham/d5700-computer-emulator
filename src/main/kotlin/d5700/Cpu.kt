@@ -55,8 +55,7 @@ class D5700CPU(
 
     override fun executeInstruction(instruction: Int) {
         if (instruction == 0x0000) {
-            halted = true
-            pendingProgramCounterAdvance = 0
+            halt()
             return
         }
 
@@ -85,46 +84,38 @@ class D5700CPU(
         return registers[index]
     }
 
-    internal fun add(rX: Int, rY: Int, rZ: Int) {
-        val result = (getRegister(rX).toInt() + getRegister(rY).toInt()) and 0xFF
-        setRegister(rZ, result.toUByte())
+    internal fun readRegister(index: Int): UByte = getRegister(index)
+
+    internal fun writeRegister(index: Int, value: UByte) {
+        setRegister(index, value)
     }
 
-    internal fun subtract(rX: Int, rY: Int, rZ: Int) {
-        val result = (getRegister(rX).toInt() - getRegister(rY).toInt()) and 0xFF
-        setRegister(rZ, result.toUByte())
-    }
-
-    internal fun readMemoryInto(rX: Int) {
+    internal fun readMemoryAtAddress(address: Int): UByte {
         val memory = if (memorySelectRom) rom else ram
-        setRegister(rX, memory.read(addressRegister))
+        return memory.read(address)
     }
 
-    internal fun writeRegisterToMemory(rX: Int) {
+    internal fun writeMemoryAtAddress(address: Int, value: UByte) {
         val memory = if (memorySelectRom) rom else ram
-        memory.write(addressRegister, getRegister(rX))
+        memory.write(address, value)
     }
 
-    internal fun jump(address: Int) {
-        ensureEvenProgramCounter(address)
-        programCounter = address
+    internal fun getAddressRegister(): Int = addressRegister
+
+    internal fun setProgramCounter(value: Int) {
+        ensureEvenProgramCounter(value)
+        programCounter = value
         pendingProgramCounterAdvance = 0
     }
 
-    internal fun readKeyboardInto(rX: Int) {
-        setRegister(rX, keyboard.readHexByte())
+    internal fun setPendingProgramCounterAdvance(value: Int) {
+        pendingProgramCounterAdvance = value
     }
+
+    internal fun readKeyboard(): UByte = keyboard.readHexByte()
 
     internal fun toggleMemorySelection() {
         memorySelectRom = !memorySelectRom
-    }
-
-    internal fun skipIfEqual(rX: Int, rY: Int) {
-        pendingProgramCounterAdvance = if (getRegister(rX) == getRegister(rY)) 4 else 2
-    }
-
-    internal fun skipIfNotEqual(rX: Int, rY: Int) {
-        pendingProgramCounterAdvance = if (getRegister(rX) != getRegister(rY)) 4 else 2
     }
 
     internal fun setAddress(value: Int) {
@@ -138,43 +129,15 @@ class D5700CPU(
         timer.set(value)
     }
 
-    internal fun readTimer(rX: Int) {
-        setRegister(rX, timer.get())
+    internal fun getTimer(): UByte = timer.get()
+
+    internal fun drawCharacter(row: Int, column: Int, value: UByte) {
+        display.draw(row, column, value)
     }
 
-    internal fun convertToBase10(rX: Int) {
-        val value = getRegister(rX).toInt() and 0xFF
-        val hundreds = value / 100
-        val tens = (value % 100) / 10
-        val ones = value % 10
-
-        val memory = if (memorySelectRom) rom else ram
-        memory.write(addressRegister, hundreds.toUByte())
-        memory.write(addressRegister + 1, tens.toUByte())
-        memory.write(addressRegister + 2, ones.toUByte())
-    }
-
-    internal fun convertByteToAscii(rX: Int, rY: Int) {
-        val value = getRegister(rX).toInt() and 0xFF
-        if (value > 0x0F) {
-            throw ProgramTerminatedException("Cannot convert non-hex digit to ASCII: $value")
-        }
-        val ascii = if (value <= 9) {
-            (0x30 + value).toUByte()
-        } else {
-            (0x41 + (value - 10)).toUByte()
-        }
-        setRegister(rY, ascii)
-    }
-
-    internal fun draw(rX: Int, rY: Int, rZ: Int) {
-        val ascii = getRegister(rX).toInt() and 0xFF
-        if (ascii > 0x7F) {
-            throw ProgramTerminatedException("DRAW value must be <= 0x7F, got 0x${ascii.toString(16)}")
-        }
-        val row = getRegister(rY).toInt() and 0xFF
-        val col = getRegister(rZ).toInt() and 0xFF
-        display.draw(row, col, ascii.toUByte())
+    internal fun halt() {
+        halted = true
+        pendingProgramCounterAdvance = 0
     }
 
     private fun ensureEvenProgramCounter(value: Int) {

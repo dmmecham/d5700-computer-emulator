@@ -249,6 +249,63 @@ class D5700CpuTest {
     }
 
     @Test
+    fun instruction_family_template_method_decodes_then_executes_operands() {
+        val f = cpuFixture()
+        val family = object : AbstractInstructionFamily() {
+            var decodeCount = 0
+            var executeCount = 0
+
+            override fun decodeOperands(instruction: Int): InstructionOperands {
+                decodeCount += 1
+                return InstructionOperands(registerX = 0, immediateByte = 0x2A)
+            }
+
+            override fun executeWithOperands(cpu: D5700CPU, operands: InstructionOperands) {
+                executeCount += 1
+                cpu.writeRegister(operands.registerX, operands.immediateByte.toUByte())
+            }
+        }
+
+        family.execute(f.cpu, 0x1234)
+
+        assertEquals(1, family.decodeCount)
+        assertEquals(1, family.executeCount)
+        assertEquals(0x2Au, f.cpu.readRegister(0))
+    }
+
+    @Test
+    fun display_renders_only_when_dirty_or_forced() {
+        val renderer = RecordingDisplayRenderer()
+        val display = D5700Display(renderer)
+
+        display.render()
+        assertEquals(0, renderer.renderCount)
+
+        display.draw(0, 0, 0x41u)
+        display.render()
+        assertEquals(1, renderer.renderCount)
+
+        display.render()
+        assertEquals(1, renderer.renderCount)
+
+        display.render(force = true)
+        assertEquals(2, renderer.renderCount)
+    }
+
+    @Test
+    fun custom_renderer_can_render_display_state() {
+        val renderer = RecordingDisplayRenderer()
+        val display = D5700Display(renderer)
+
+        display.draw(0, 0, 0x41u)
+        display.render()
+
+        assertEquals(1, renderer.renderCount)
+        assertEquals(0x41u, renderer.lastBuffer[0])
+        assertEquals(false, renderer.lastForce)
+    }
+
+    @Test
     fun draw_throws_for_non_ascii_byte() {
         val f = cpuFixture()
         loadProgram(f.rom, 0x00FF, 0x0100, 0x0200, 0xF012)
@@ -322,4 +379,19 @@ class D5700CpuTest {
         val display: D5700Display,
         val timer: D5700Timer
     )
+
+    private class RecordingDisplayRenderer : DisplayRenderer {
+        var renderCount = 0
+            private set
+        var lastBuffer: UByteArray = UByteArray(0)
+            private set
+        var lastForce = false
+            private set
+
+        override fun render(buffer: UByteArray, force: Boolean) {
+            renderCount += 1
+            lastBuffer = buffer.copyOf()
+            lastForce = force
+        }
+    }
 }

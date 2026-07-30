@@ -48,6 +48,20 @@ fun interface InstructionStrategy {
   +execute(cpu: D5700CPU, instruction: Int): Unit
 }
 
+abstract class AbstractInstructionFamily {
+  +execute(cpu: D5700CPU, instruction: Int): Unit
+  #decodeOperands(instruction: Int): InstructionOperands
+  #executeWithOperands(cpu: D5700CPU, operands: InstructionOperands): Unit
+}
+
+data class InstructionOperands {
+  +registerX: Int
+  +registerY: Int
+  +registerZ: Int
+  +address: Int
+  +immediateByte: Int
+}
+
 object DefaultInstructionFactory {
   -instructionMap: Map<Int, InstructionStrategy>
   +get(opcode: Int): InstructionStrategy?
@@ -88,12 +102,21 @@ class StubKeyboardInput {
   +readHexByte(): UByte
 }
 
+interface DisplayRenderer {
+  +render(buffer: UByteArray, force: Boolean): Unit
+}
+
+class ConsoleDisplayRenderer {
+  +render(buffer: UByteArray, force: Boolean): Unit
+}
+
 class D5700Display {
   -frameBuffer: UByteArray
   -dirty: Boolean
   +draw(row: Int, column: Int, value: UByte): Unit
   +clear(): Unit
   +snapshot(): UByteArray
+  +render(force: Boolean = false): Unit
   +renderToConsole(force: Boolean = false): Unit
 }
 
@@ -143,12 +166,31 @@ D5700CPU --> InstructionFactory : decodes/dispatches
 
 InstructionFactory <|.. DefaultInstructionFactory
 InstructionStrategy <.. DefaultInstructionFactory : uses
+AbstractInstructionFamily <|-- LoadImmediateInstruction
+AbstractInstructionFamily <|-- AddInstruction
+AbstractInstructionFamily <|-- SubtractInstruction
+AbstractInstructionFamily <|-- ReadMemoryInstruction
+AbstractInstructionFamily <|-- WriteMemoryInstruction
+AbstractInstructionFamily <|-- JumpInstruction
+AbstractInstructionFamily <|-- ReadKeyboardInstruction
+AbstractInstructionFamily <|-- ToggleMemorySelectionInstruction
+AbstractInstructionFamily <|-- SkipIfEqualInstruction
+AbstractInstructionFamily <|-- SkipIfNotEqualInstruction
+AbstractInstructionFamily <|-- SetAddressInstruction
+AbstractInstructionFamily <|-- SetTimerInstruction
+AbstractInstructionFamily <|-- ReadTimerInstruction
+AbstractInstructionFamily <|-- ConvertToBase10Instruction
+AbstractInstructionFamily <|-- ConvertByteToAsciiInstruction
+AbstractInstructionFamily <|-- DrawInstruction
 
 D5700AddressableMemory <|.. D5700Ram
 D5700AddressableMemory <|.. D5700Rom
 
 KeyboardInput <|.. ConsoleKeyboardInput
 KeyboardInput <|.. StubKeyboardInput
+
+DisplayRenderer <|.. ConsoleDisplayRenderer
+D5700Display --> DisplayRenderer : uses
 
 TimerSchedulerStrategy <|.. RealTimeTimerSchedulerStrategy
 TimerSchedulerStrategy <|.. ManualTimerSchedulerStrategy

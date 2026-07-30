@@ -25,7 +25,29 @@ class StubKeyboardInput(private val supplier: () -> UByte) : KeyboardInput {
     override fun readHexByte(): UByte = supplier()
 }
 
-class D5700Display {
+interface DisplayRenderer {
+    fun render(buffer: UByteArray, force: Boolean)
+}
+
+class ConsoleDisplayRenderer : DisplayRenderer {
+    override fun render(buffer: UByteArray, force: Boolean) {
+        println("+--------+")
+        for (row in 0 until 8) {
+            val line = buildString {
+                for (col in 0 until 8) {
+                    val v = buffer[row * 8 + col].toInt()
+                    append(if (v in 32..126) v.toChar() else ' ')
+                }
+            }
+            println("|$line|")
+        }
+        println("+--------+")
+    }
+}
+
+class D5700Display(
+    private val renderer: DisplayRenderer = ConsoleDisplayRenderer()
+) {
     private val frameBuffer = UByteArray(64)
     private var dirty = false
 
@@ -45,21 +67,15 @@ class D5700Display {
 
     fun snapshot(): UByteArray = frameBuffer.copyOf()
 
-    fun renderToConsole(force: Boolean = false) {
+    fun render(force: Boolean = false) {
         if (!dirty && !force) {
             return
         }
-        println("+--------+")
-        for (row in 0 until 8) {
-            val line = buildString {
-                for (col in 0 until 8) {
-                    val v = frameBuffer[row * 8 + col].toInt()
-                    append(if (v in 32..126) v.toChar() else ' ')
-                }
-            }
-            println("|$line|")
-        }
-        println("+--------+")
+        renderer.render(frameBuffer.copyOf(), force)
         dirty = false
+    }
+
+    fun renderToConsole(force: Boolean = false) {
+        render(force)
     }
 }

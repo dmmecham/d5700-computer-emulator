@@ -24,7 +24,7 @@ class D5700Emulator private constructor(
             while (!cpu.halted) {
                 val start = System.nanoTime()
                 cpu.step()
-                display.renderToConsole()
+                display.render()
 
                 val elapsed = System.nanoTime() - start
                 val remaining = stepDurationNanos - elapsed
@@ -35,7 +35,7 @@ class D5700Emulator private constructor(
         } finally {
             timer.stop()
         }
-        display.renderToConsole(force = true)
+        display.render(force = true)
     }
 
     companion object Factory {
